@@ -1,4 +1,3 @@
-#pragma once
 #include <ntdef.h>
 #include <ntifs.h>
 #include <ntddk.h>
@@ -6,6 +5,13 @@
 #include <ntstrsafe.h>
 #include <minwindef.h>
 #include <psapi.h>
+#include "xor.h"
+
+template <typename... Args>
+void log(const char* format, Args... args)
+{
+	DbgPrintEx(0, 0, format, args...);
+}
 
 typedef unsigned char       BYTE;
 typedef struct _RTL_PROCESS_MODULE_INFORMATION
@@ -227,3 +233,42 @@ typedef struct _SYSTEM_MODULE_INFORMATION {
 	ULONG NumberOfModules;
 	SYSTEM_MODULE Modules[1];
 } SYSTEM_MODULE_INFORMATION, * PSYSTEM_MODULE_INFORMATION;
+
+#define MM_UNLOADED_DRIVERS_SIZE 50
+typedef struct _MM_UNLOADED_DRIVER {
+	UNICODE_STRING 	Name;
+	PVOID 			ModuleStart;
+	PVOID 			ModuleEnd;
+	ULONG64 		UnloadTime;
+} MM_UNLOADED_DRIVER, * PMM_UNLOADED_DRIVER;
+
+PVOID
+GetKernelModuleBase(
+	CHAR* ModuleName
+);
+
+PVOID FindPatternImage(
+	PCHAR Base,
+	PCHAR Pattern,
+	PCHAR Mask
+);
+
+extern PVOID ResolveRelativeAddress(
+	_In_ PVOID Instruction,
+	_In_ ULONG OffsetOffset,
+	_In_ ULONG InstructionSize
+);
+
+PVOID GetKernelBase2();
+
+ULONGLONG GetExportedFunction(
+	CONST ULONGLONG mod,
+	CONST CHAR* name
+);
+
+PERESOURCE GetPsLoaded();
+UCHAR RandomNumber();
+
+BOOL clearCache(UNICODE_STRING DriverName, ULONG timeDateStamp);
+BOOL clearHashBucket(UNICODE_STRING DriverName);
+BOOL CleanMmu(UNICODE_STRING DriverName);
