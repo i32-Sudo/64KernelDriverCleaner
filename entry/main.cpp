@@ -1,7 +1,6 @@
 #include <ntifs.h>
 #include <ntddk.h>
 #include <wdm.h>
-#include "IoCreateDriver/CreateDriver.h"
 
 #include "../global.h"
 
@@ -66,47 +65,6 @@ extern "C" NTSTATUS OEPDriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICO
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	PKLDR_DATA_TABLE_ENTRY pSelfEntry = nullptr;
-	auto pNext = PsLoadedModuleList->Flink;
-	if (pNext != NULL)
-	{
-		while (pNext != PsLoadedModuleList)
-		{
-			auto pEntry = CONTAINING_RECORD(pNext, KLDR_DATA_TABLE_ENTRY, InLoadOrderLinks);
-
-			auto pBase = pEntry->DllBase;
-			if (DriverObject->DriverStart == pBase)
-			{
-				pSelfEntry = pEntry;
-				break;
-			}
-
-			pNext = pNext->Flink;
-		}
-	}
-
-	//////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-	if (pSelfEntry)
-	{
-		KIRQL kIrql = KeRaiseIrqlToDpcLevel();
-		auto pPrevEntry = (PKLDR_DATA_TABLE_ENTRY)pSelfEntry->InLoadOrderLinks.Blink;
-		auto pNextEntry = (PKLDR_DATA_TABLE_ENTRY)pSelfEntry->InLoadOrderLinks.Flink;
-		if (pPrevEntry)
-		{
-			pPrevEntry->InLoadOrderLinks.Flink = pSelfEntry->InLoadOrderLinks.Flink;
-		}
-		if (pNextEntry)
-		{
-			pNextEntry->InLoadOrderLinks.Blink = pSelfEntry->InLoadOrderLinks.Blink;
-		}
-		pSelfEntry->InLoadOrderLinks.Flink = (PLIST_ENTRY)pSelfEntry;
-		pSelfEntry->InLoadOrderLinks.Blink = (PLIST_ENTRY)pSelfEntry;
-		KeLowerIrql(kIrql);
-	}
-
-	//////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 	/*
 	0x5284EAC3 - iqvw64e.sys
 	0xBF8A5E6A - srv2.sys | 2071-10-31 14:26:34
@@ -126,9 +84,6 @@ extern "C" NTSTATUS OEPDriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICO
 /* Fake OEP */
 extern "C" NTSTATUS DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath)
 {
-	UNREFERENCED_PARAMETER(DriverObject);
-	UNREFERENCED_PARAMETER(RegistryPath);
 	DbgPrintEx(DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, _(" - Driver Started"));
-
-	return IoCreateDriver(OEPDriverEntry);
+	return OEPDriverEntry(DriverObject, RegistryPath);
 }
